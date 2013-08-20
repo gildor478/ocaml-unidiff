@@ -1,0 +1,330 @@
+diff -rN -u old-oasis/Makefile new-oasis/Makefile
+--- old-oasis/Makefile	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/Makefile	2012-02-22 22:15:31.000000000 +0000
+@@ -25,10 +25,10 @@
+ CONFIGUREFLAGS += $(if $(shell ocamlfind query gettext),--enable-gettext,--disable-gettext)
+ 
+ default: test
+-#TESTFLAGS      += -long 
++#TESTFLAGS      += -long
+ #TESTFLAGS      += -verbose
+ #TESTFLAGS      += -debug
+-#TESTFLAGS      += -only-test OASIS:5:TestFull:0:../examples/flags:1
++#TESTFLAGS      += -only-test OASIS:5:TestFull:20:data/bug982:0:standard
+ 
+ # OASIS_START
+ # DO NOT EDIT (digest: bc1e05bfc8b39b664f29dae8dbd3ebbb)
+@@ -44,7 +44,7 @@
+ test: setup.data build
+ 	$(SETUP) -test $(TESTFLAGS)
+ 
+-all: 
++all:
+ 	$(SETUP) -all $(ALLFLAGS)
+ 
+ install: setup.data
+@@ -56,10 +56,10 @@
+ reinstall: setup.data
+ 	$(SETUP) -reinstall $(REINSTALLFLAGS)
+ 
+-clean: 
++clean:
+ 	$(SETUP) -clean $(CLEANFLAGS)
+ 
+-distclean: 
++distclean:
+ 	$(SETUP) -distclean $(DISTCLEANFLAGS)
+ 
+ setup.data:
+@@ -83,7 +83,7 @@
+ 
+ .PHONY: wc headache
+ 
+-# Binary distribution 
++# Binary distribution
+ 
+ BINDIST_DEBUG=false
+ 
+@@ -100,8 +100,8 @@
+ ifeq ($(os_type),"Win32")
+ tr_path = cygpath -w
+ else
+-tr_path = echo 
+-endif 
++tr_path = echo
++endif
+ 
+ BINDISTGZ=$(pkg_name)-$(pkg_version)-bindist.tar.gz
+ 
+@@ -119,7 +119,7 @@
+ 	  --disable-libraries \
+ 	  --override ocamlbuildflags "-classic-display -tag custom" \
+ 	  $(CONFIGUREFLAGS)
+-	$(SETUP) -build 
++	$(SETUP) -build
+ 	if ! $(BINDIST_DEBUG); then $(SETUP) -test; fi
+ 	if ! [ "$(os_type)" = "Win32" ]; then $(SETUP) -doc; fi
+ 	$(SETUP) -install
+@@ -130,7 +130,7 @@
+ 
+ # Source distribution
+ 
+-dist: 
++dist:
+ 	# Check consistency of versions
+ 	OASIS_CMD_VER=$$(oasis version); \
+ 	OASIS_DIST_VER=$$(oasis query version); \
+@@ -145,7 +145,7 @@
+ 	fi
+ 	./src/tools/oasis-dist.ml
+ 
+-.PHONY: dist 
++.PHONY: dist
+ 
+ # Fixing permissions
+ 
+diff -rN -u old-oasis/src/base/BaseEnv.ml new-oasis/src/base/BaseEnv.ml
+--- old-oasis/src/base/BaseEnv.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/base/BaseEnv.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -453,23 +453,21 @@
+                      Printf.sprintf (f_ "%s %s%s") arg_hlp hlp default_value
+                    ]
+                | CLIEnable ->
+-                   [
+-                     arg_concat "--enable-" arg_name,
+-                     Arg.Unit (fun () -> var_set "true"),
+-                     Printf.sprintf (f_ " %s%s") hlp
+-                       (if default_value = " [true]" then
+-                          (s_ " [default]")
+-                        else
+-                          "");
++                   let dflt = 
++                     if default_value = " [true]" then
++                       s_ " [default: enabled]"
++                     else
++                       s_ " [default: disabled]"
++                   in
++                     [
++                       arg_concat "--enable-" arg_name,
++                       Arg.Unit (fun () -> var_set "true"),
++                       Printf.sprintf (f_ " %s%s") hlp dflt;
+ 
+-                     arg_concat "--disable-" arg_name,
+-                     Arg.Unit (fun () -> var_set "false"),
+-                     Printf.sprintf (f_ " %s%s") hlp
+-                       (if default_value = " [false]" then
+-                          (s_ " [default]")
+-                        else
+-                          "");
+-                   ]
++                       arg_concat "--disable-" arg_name,
++                       Arg.Unit (fun () -> var_set "false"),
++                       Printf.sprintf (f_ " %s%s") hlp dflt
++                     ]
+                | CLIUser lst ->
+                    lst
+            in
+diff -rN -u old-oasis/src/base/BaseStandardVar.ml new-oasis/src/base/BaseStandardVar.ml
+--- old-oasis/src/base/BaseStandardVar.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/base/BaseStandardVar.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -259,16 +259,32 @@
+ 
+ let debug =
+   var_define
+-    ~short_desc:(fun () -> s_ "Compile with ocaml debug flag on.")
++    ~short_desc:(fun () -> s_ "Turn ocaml debug flag on")
++    ~cli:CLIEnable
+     "debug"
+     (fun () -> "true")
+ 
+ let profile =
+   var_define
+-    ~short_desc:(fun () -> s_ "Compile with ocaml profile flag on.")
++    ~short_desc:(fun () -> s_ "Turn ocaml profile flag on")
++    ~cli:CLIEnable
+     "profile"
+     (fun () -> "false")
+ 
++let tests = 
++  var_define
++    ~short_desc:(fun () -> s_ "Compile tests executable and library and run them")
++    ~cli:CLIEnable
++    "tests"
++    (fun () -> "false")
++
++let docs = 
++  var_define
++    ~short_desc:(fun () -> s_ "Create documentations")
++    ~cli:CLIEnable
++    "docs"
++    (fun () -> "true")
++
+ let init pkg =
+   rpkg := Some pkg
+ 
+diff -rN -u old-oasis/src/cli/Query.ml new-oasis/src/cli/Query.ml
+--- old-oasis/src/cli/Query.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/cli/Query.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -154,7 +154,7 @@
+                        PropList.Schema.get schm data nm
+                      in
+                        (prefix^nm) :: acc
+-                   with _ ->
++                   with e ->
+                      acc)
+                 acc
+                 schm
+diff -rN -u old-oasis/src/cli/SetupDev.ml new-oasis/src/cli/SetupDev.ml
+--- old-oasis/src/cli/SetupDev.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/cli/SetupDev.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -79,6 +79,7 @@
+              * if they don't exist
+              *)
+             let chngs = 
++              prerr_endline "coucou";
+               BaseGenerate.generate 
+                 ~msg
+                 ~dev:true
+@@ -98,6 +99,7 @@
+           begin
+             let () = 
+               (* Clean everything before running *)
++              prerr_endline "coucou2";
+               BaseGenerate.restore ~msg ()
+             in
+ 
+diff -rN -u old-oasis/src/oasis/OASISBuildSection_intern.ml new-oasis/src/oasis/OASISBuildSection_intern.ml
+--- old-oasis/src/oasis/OASISBuildSection_intern.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISBuildSection_intern.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -94,10 +94,11 @@
+     (fun () -> s_ "Tools required to compile, including internal executables.")
+     sync
+ 
+-let build_install_data_fields schm sync_build sync_install sync_datafiles = 
++let build_install_data_fields ?default_cond ?(default=true) schm sync_build sync_install sync_datafiles = 
+   let build = 
+     new_field_conditional schm "Build"
+-      ~default:true
++      ?default_cond
++      ~default
+       boolean
+       (fun () -> s_ "Set if the section should be built.")
+       sync_build
+diff -rN -u old-oasis/src/oasis/OASISDocument_intern.ml new-oasis/src/oasis/OASISDocument_intern.ml
+--- old-oasis/src/oasis/OASISDocument_intern.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISDocument_intern.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -122,6 +122,11 @@
+   in
+   let build, install, data_files = 
+    OASISBuildSection_intern.build_install_data_fields schm
++     (* TODO: establish a formal link between "docs" string and 
++      * BaseStandardVars.
++      *)
++     ~default_cond:[OASISExpr.EFlag "docs", true]
++     ~default:false
+      (fun (_, doc) -> doc.doc_build)
+      (fun (_, doc) -> doc.doc_install)
+      (fun (_, doc) -> doc.doc_data_files)
+diff -rN -u old-oasis/src/oasis/OASISSchema_intern.ml new-oasis/src/oasis/OASISSchema_intern.ml
+--- old-oasis/src/oasis/OASISSchema_intern.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISSchema_intern.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -162,6 +162,7 @@
+       t
+       name 
+       ?plugin 
++      ?default_cond
+       ?default 
+       ?quickstart_level
+       ?quickstart_question
+@@ -200,10 +201,14 @@
+   in
+ 
+   let default = 
+-    match default with 
+-      | Some x ->
++    match default_cond, default with 
++      | Some lst, Some x ->
++          Some ((EBool true, x) :: lst)
++      | Some lst, None ->
++          Some lst
++      | None, Some x ->
+           Some [EBool true, x]
+-      | None ->
++      | None, None ->
+           None
+   in
+ 
+diff -rN -u old-oasis/src/oasis/OASISSchema.ml new-oasis/src/oasis/OASISSchema.ml
+--- old-oasis/src/oasis/OASISSchema.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISSchema.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -58,13 +58,14 @@
+       hlp 
+       (sync_proxy schema plugin nm pivot_data sync)
+ 
+-let new_field_conditional schema t nm ?default parse hlp pivot_data sync =
++let new_field_conditional schema t nm ?default_cond ?default parse hlp pivot_data sync =
+   let plugin =
+     OASISPlugin.to_plugin t
+   in
+     OASISSchema_intern.new_field_conditional 
+       schema
+       (make_field_name plugin nm) 
++      ?default_cond
+       ?default 
+       ~plugin
+       parse 
+diff -rN -u old-oasis/src/oasis/OASISSchema.mli new-oasis/src/oasis/OASISSchema.mli
+--- old-oasis/src/oasis/OASISSchema.mli	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISSchema.mli	2012-02-22 22:15:31.000000000 +0000
+@@ -51,11 +51,15 @@
+   PropList.Data.t -> 'a
+ 
+ (** Create a conditional field for a plugin. Sees {!new_field} for explanation.
++    The extra [default_cond] parameter allows to define a complex default. If 
++    [default_cond] and [default] are defined together, they are concatened in 
++    this order.
+   *)
+ val new_field_conditional :
+   ('b t) ->
+   OASISPlugin.all_t ->
+   name ->
++  ?default_cond:('a OASISExpr.choices) ->
+   ?default:'a ->
+   'a OASISValues.t ->
+   (unit -> string) -> 
+diff -rN -u old-oasis/src/oasis/OASISTest_intern.ml new-oasis/src/oasis/OASISTest_intern.ml
+--- old-oasis/src/oasis/OASISTest_intern.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/src/oasis/OASISTest_intern.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -81,7 +81,9 @@
+   in
+   let run = 
+     new_field_conditional schm "Run"
+-      ~default:true
++      (* TODO: establish a formal link between here and BaseStandardVars *)
++      ~default_cond:[OASISExpr.EFlag "tests", true]
++      ~default:false
+       boolean
+       (fun () ->
+          s_ "Enable this test.")
+diff -rN -u old-oasis/test/data/bug982/test-setup-data.sh new-oasis/test/data/bug982/test-setup-data.sh
+--- old-oasis/test/data/bug982/test-setup-data.sh	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/test/data/bug982/test-setup-data.sh	2012-02-22 22:15:31.000000000 +0000
+@@ -22,7 +22,7 @@
+ 
+ set -e
+ 
+-source "./setup.data"
++. "./setup.data"
+ 
+ set -x
+ 
+diff -rN -u old-oasis/test/TestQuery.ml new-oasis/test/TestQuery.ml
+--- old-oasis/test/TestQuery.ml	2012-02-22 22:15:31.000000000 +0000
++++ new-oasis/test/TestQuery.ml	2012-02-22 22:15:31.000000000 +0000
+@@ -89,6 +89,5 @@
+            \nXStdFilesAUTHORSFilename\
+            \nTest(main).Type\
+            \nTest(main).TestTools\
+-           \nTest(main).Run\
+            \nFlag(test).Description"]
+        ])

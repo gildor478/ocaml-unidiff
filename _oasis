@@ -1,0 +1,30 @@
+OASISFormat: 0.2
+Name:        ocaml-unidiff
+Version:     0.0.1
+Synopsis:    Unified diff format functions
+Authors:     Sylvain Le Gall
+License:     LGPL-2.1 with OCaml linking exception
+Plugins:     DevFiles (0.2), META (0.2), StdFiles (0.2)
+BuildTools:  ocamlbuild
+
+Library unidiff
+  Path:       src
+  Modules:    UniDiff
+
+Executable test
+  Path:       test
+  BuildDepends: oUnit (>= 1.1.0), unidiff
+  MainIs:     test.ml
+  Install:    false
+
+Test main
+  Command: $test
+
+Document "api-unidiff"
+  Title:      API reference for UniDiff
+  InstallDir: $htmldir
+  Type:       ocamlbuild (0.2)
+  XOCamlbuildPath: src
+  XOCamlbuildLibraries: unidiff
+  BuildTools+: ocamldoc
+
