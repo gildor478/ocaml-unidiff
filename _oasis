@@ -6,6 +6,7 @@ Authors:     Sylvain Le Gall
 License:     LGPL-2.1 with OCaml linking exception
 Plugins:     DevFiles (0.2), META (0.2), StdFiles (0.2)
 BuildTools:  ocamlbuild
+Homepage:    http://forge.ocamlcore.org/projects/ocaml-unidiff/
 
 Library unidiff
   Path:       src
