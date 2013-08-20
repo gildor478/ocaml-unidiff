@@ -38,3 +38,11 @@ setup.data:
 .PHONY: build doc test all install uninstall reinstall clean distclean configure
 
 # OASIS_STOP
+
+deploy:
+	admin-gallu-deploy --verbose \
+		--forge_upload	--forge_group ocaml-unidiff --forge_user gildor-admin
+	admin-gallu-oasis-increment --use_vcs \
+		--setup_run --setup_args '-setup-update dynamic'
+
+.PHONY: deploy
