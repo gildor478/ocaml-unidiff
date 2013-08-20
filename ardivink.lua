@@ -5,7 +5,6 @@ dist = require("dist")
 
 ci.init()
 oasis.init()
-git.init()
 
 ci.prependenv("PATH", "/usr/opt/godi/bin")
 ci.prependenv("PATH", "/usr/opt/godi/sbin")
