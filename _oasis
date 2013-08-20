@@ -1,4 +1,4 @@
-OASISFormat: 0.2
+OASISFormat: 0.3
 Name:        ocaml-unidiff
 Version:     0.0.1
 Synopsis:    Unified diff format functions
