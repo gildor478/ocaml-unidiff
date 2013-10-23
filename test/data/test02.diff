@@ -1,0 +1,13 @@
+diff --git a/test/test.ml b/test/test.ml
+index 6cd0cc9..64df75d 100644
+--- a/test/test.ml
++++ b/test/test.ml
+@@ -26,6 +26,7 @@ open FilePath
+ let oasis2debian = Conf.make_exec "oasis2debian"
+ let tar = Conf.make_exec "tar"
+ let debuild = Conf.make_exec "debuild"
++
+ let lintian = Conf.make_exec "lintian"
+ 
+ let args_for_tarball =
+

@@ -1,5 +1,5 @@
 
-open OUnit
+open OUnit2
 
 module SetDiff = 
   Set.Make
@@ -8,30 +8,54 @@ module SetDiff =
        let compare = compare
      end)
 
-let tests = 
-  "UniDiff" >::
-  (bracket
-     (fun () ->
-        open_in "test/test01.diff")
-     (fun chn ->
-        let t = UniDiff.parse (Stream.of_channel chn) in
-        let st = 
-          UniDiff.fold `New 
-            ~with_context:false 
-            ~strip:0
-            (fun st fn _ pos line ->
-               SetDiff.add (fn, pos, line) st)
-            SetDiff.empty t
-        in
-          assert_bool
-            "Contains a random new line."
-            (SetDiff.mem 
-               ("new-oasis/src/cli/Query.ml", 
-                157,
-                "                   with e ->")
-               st))
-     (fun chn ->
-        close_in chn))
+let extract_diff test_ctxt fn = 
+  let chn = open_in (in_testdata_dir test_ctxt [fn]) in
+  let t = UniDiff.parse (Stream.of_channel chn) in
+    UniDiff.iter `New
+      ~with_context:false
+      ~strip:0
+      (fun fn tm pos ln ->
+         logf test_ctxt `Info "'%s', time %s +++ '%s', line %d"
+           fn (match tm with Some s -> s | None -> "none")
+           ln pos)
+      t;
+    UniDiff.iter `Old
+      ~with_context:false
+      ~strip:0
+      (fun fn tm pos ln ->
+         logf test_ctxt `Info "'%s', time: %s --- '%s', line %d"
+           fn (match tm with Some s -> s | None -> "none")
+           ln pos)
+      t;
+    UniDiff.fold `New 
+      ~with_context:false 
+      ~strip:0
+      (fun st fn _ pos line ->
+         SetDiff.add (fn, pos, line) st)
+      SetDiff.empty t
 
-let _lst : test_result list = 
+let tests = 
+  "UniDiff" >:::
+  [
+    "test01.diff" >::
+    (fun test_ctxt ->
+       let st = extract_diff test_ctxt "test01.diff" in
+         assert_bool
+           "Contains a random new line."
+           (SetDiff.mem 
+              ("new-oasis/src/cli/Query.ml", 157,
+               "                   with e ->")
+              st));
+
+    "test02.diff" >::
+    (fun test_ctxt ->
+       let st = extract_diff test_ctxt "test02.diff" in
+         assert_bool
+           "Contains a random new line."
+           (SetDiff.mem 
+              ("b/test/test.ml", 29, "")
+              st));
+  ]
+
+let () = 
   run_test_tt_main tests

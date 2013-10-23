@@ -11,9 +11,9 @@ type change =
 type file =
     {
       old_fn: string;
-      old_timestamp: string;
+      old_timestamp: string option;
       new_fn: string;
-      new_timestamp: string;
+      new_timestamp: string option;
       changes: (change * string) list;
     }
 type t = 
@@ -25,9 +25,9 @@ let parse strm =
   let dflt = 
     {
       old_fn = "";
-      old_timestamp = "";
+      old_timestamp = None;
       new_fn = "";
-      new_timestamp = "";
+      new_timestamp = None;
       changes = [];
     }
   in
@@ -71,9 +71,15 @@ let parse strm =
   let rec parse_header acc file is_old =
     let str = parse_line () in
     let len = String.length str in
-    let len_date = String.length "2012-02-22 22:15:31.000000000 +0000" in
-    let date = String.sub str (len - len_date) len_date in
-    let fn = String.sub str 4 (len - len_date - 4 - 1) in
+    let fn, date = 
+      try
+        let tab_index = String.index str '\t' in
+          String.sub str 4 (tab_index - 4),
+          Some (String.sub str (tab_index + 1) (len - tab_index - 1))
+      with Not_found ->
+        String.sub str 4 (len - 4),
+        None
+    in
 
     let acc, file =
       if (is_old && file.old_fn <> dflt.old_fn) 
@@ -129,7 +135,7 @@ let parse strm =
               if String.length str > 4 && String.sub str 0 4 = "diff" then
                 ()
               else
-                Printf.eprintf "I: Skipping line %s\n%!" (parse_line ());
+                Printf.eprintf "I: Skipping line %S\n%!" str;
               parse_diff acc file old_pos new_pos 
 
   in

@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        ocaml-unidiff
-Version: 0.0.2
+Version:     0.0.2
 Synopsis:    Unified diff format functions
 Authors:     Sylvain Le Gall
 License:     LGPL-2.1 with OCaml linking exception
@@ -14,9 +14,10 @@ Library unidiff
 
 Executable test
   Path:       test
-  BuildDepends: oUnit (>= 1.1.0), unidiff
+  BuildDepends: oUnit (>= 2.0.0), unidiff
   MainIs:     test.ml
   Install:    false
+  Build$: flag(tests)
 
 Test main
   Command: $test
