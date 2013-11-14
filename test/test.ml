@@ -55,6 +55,11 @@ let tests =
            (SetDiff.mem 
               ("b/test/test.ml", 29, "")
               st));
+
+    "test03.diff" >::
+    (fun test_ctxt ->
+       let _st: SetDiff.t = extract_diff test_ctxt "test03.diff" in
+         ());
   ]
 
 let () = 

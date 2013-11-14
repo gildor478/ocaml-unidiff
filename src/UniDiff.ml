@@ -19,6 +19,12 @@ type file =
 type t = 
     file list
 
+let starts_with ~prefix str =
+  if String.length str > String.length prefix then
+    String.sub str 0 (String.length prefix) = prefix
+  else
+    false
+
 let parse strm = 
   let buf = Buffer.create 13 in
 
@@ -62,10 +68,21 @@ let parse strm =
   in
 
   let decode_position str = 
-    Scanf.sscanf 
-      (String.sub str 3 (String.length str - 6)) (* Trim '@@' *)
-      "-%d,%d +%d,%d" 
-      (fun old_pos _ new_pos _ -> old_pos, new_pos)
+    let trim_str =
+      String.sub str 3 (String.length str - 6) (* Trim '@@' *)
+    in
+    try
+      Scanf.sscanf trim_str "-%d,%d +%d,%d"
+        (fun old_pos _ new_pos _ -> old_pos, new_pos)
+    with Scanf.Scan_failure _ ->
+      try
+        Scanf.sscanf trim_str "-%d +%d"
+          (fun old_pos new_pos -> old_pos, new_pos)
+      with Scanf.Scan_failure _ ->
+        failwith
+          (Printf.sprintf
+             "Expecting \"@@ -%%d(,%%d) +%%d(,%%d) @@\" but got %S"
+             str)
   in
 
   let rec parse_header acc file is_old =
@@ -132,7 +149,8 @@ let parse strm =
         | _ ->
             (* Junk *)
             let str = parse_line () in
-              if String.length str > 4 && String.sub str 0 4 = "diff" then
+              if starts_with ~prefix:"diff" str ||
+                 starts_with ~prefix:"index" str then
                 ()
               else
                 Printf.eprintf "I: Skipping line %S\n%!" str;
