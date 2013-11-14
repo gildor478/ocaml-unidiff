@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        ocaml-unidiff
-Version:     0.0.2
+Version: 0.0.3
 Synopsis:    Unified diff format functions
 Authors:     Sylvain Le Gall
 License:     LGPL-2.1 with OCaml linking exception
