@@ -60,6 +60,16 @@ let tests =
     (fun test_ctxt ->
        let _st: SetDiff.t = extract_diff test_ctxt "test03.diff" in
          ());
+
+    "test04.diff" >::
+    (fun test_ctxt ->
+       let st = extract_diff test_ctxt "test04.diff" in
+         assert_bool
+           "Contains the new line."
+           (SetDiff.mem
+              ("b/src/cli/VersionHelp.mkd", 1,
+               "Display version of the oasis executable.")
+              st));
   ]
 
 let () = 

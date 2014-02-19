@@ -71,18 +71,38 @@ let parse strm =
     let trim_str =
       String.sub str 3 (String.length str - 6) (* Trim '@@' *)
     in
-    try
-      Scanf.sscanf trim_str "-%d,%d +%d,%d"
-        (fun old_pos _ new_pos _ -> old_pos, new_pos)
-    with Scanf.Scan_failure _ ->
-      try
-        Scanf.sscanf trim_str "-%d +%d"
-          (fun old_pos new_pos -> old_pos, new_pos)
-      with Scanf.Scan_failure _ ->
-        failwith
-          (Printf.sprintf
-             "Expecting \"@@ -%%d(,%%d) +%%d(,%%d) @@\" but got %S"
-             str)
+    let opt =
+      List.fold_left
+        (fun opt f ->
+           match opt with
+             | Some _ -> opt
+             | None ->
+                 try
+                   Some (f trim_str)
+                 with Scanf.Scan_failure _ | End_of_file ->
+                   None)
+        None
+        [
+          (fun str ->
+             Scanf.sscanf str "-%d,%d +%d,%d"
+               (fun old_pos _ new_pos _ -> old_pos, new_pos));
+          (fun str ->
+             (* TODO: interpretation of +%d need to be checked. *)
+             Scanf.sscanf str "-%d +%d"
+               (fun old_pos new_pos -> old_pos, new_pos));
+
+          (fun str ->
+             Scanf.sscanf str "-%d,%d +%d"
+               (fun old_pos _ new_pos -> old_pos, new_pos));
+        ]
+    in
+      match opt with
+        | Some t -> t
+        | None ->
+            failwith
+              (Printf.sprintf
+                 "Expecting \"@@ -%%d(,%%d) +%%d(,%%d) @@\" but got %S"
+                 str)
   in
 
   let rec parse_header acc file is_old =

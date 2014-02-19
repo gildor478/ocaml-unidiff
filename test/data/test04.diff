@@ -1,0 +1,6 @@
+diff --git a/src/cli/VersionHelp.mkd b/src/cli/VersionHelp.mkd
+index e69de29..ecc9a0e 100644
+--- a/src/cli/VersionHelp.mkd
++++ b/src/cli/VersionHelp.mkd
+@@ -0,0 +1 @@
++Display version of the oasis executable.
