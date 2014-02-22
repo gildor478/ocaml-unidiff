@@ -170,10 +170,11 @@ let parse strm =
             (* Junk *)
             let str = parse_line () in
               if starts_with ~prefix:"diff" str ||
-                 starts_with ~prefix:"index" str then
+                 starts_with ~prefix:"index" str ||
+                 starts_with ~prefix:"new file" str then
                 ()
               else
-                Printf.eprintf "I: Skipping line %S\n%!" str;
+                Printf.eprintf "I: unidiff, skipping line %S\n%!" str;
               parse_diff acc file old_pos new_pos 
 
   in
